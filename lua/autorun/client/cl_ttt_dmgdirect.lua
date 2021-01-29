@@ -32,12 +32,20 @@ net.Receive("ttt_dmgdirect", function()
 		return
 	end
 
+	local len = net.ReadUInt(10) / 1023 * 1024
+
+	local pos = localply:EyePos()
+
+	for i = 1, 3 do
+		pos[i] = pos[i] - (net.ReadUInt(10) / 511.5 - 1) * len
+	end
+
 	local ind = tail
 
 	tail = {
 		false,
 		RealTime(),
-		net.ReadVector(),
+		pos,
 		net.ReadUInt(8) / 255,
 	}
 

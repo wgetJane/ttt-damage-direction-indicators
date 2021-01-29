@@ -6,6 +6,10 @@ hook.Add("OnDamagedByExplosion", "ttt_dmgdirect_OnDamagedByExplosion", function(
 	return true
 end)
 
+local function percent2uint(a, b, c)
+	return math.Clamp(math.floor(a / b * c + 0.5), 0, c)
+end
+
 hook.Add("PostEntityTakeDamage", "ttt_dmgdirect_PostEntityTakeDamage", function(victim, dmginfo)
 	if not (IsValid(victim)
 		and victim:IsPlayer()
@@ -46,8 +50,22 @@ hook.Add("PostEntityTakeDamage", "ttt_dmgdirect_PostEntityTakeDamage", function(
 		end
 	end
 
+	pos:Mul(-1)
+	pos:Add(victim:EyePos())
+
+	local len = percent2uint(pos:Length(), 1024, 1023)
+
+	pos:Normalize()
+
 	net.Start("ttt_dmgdirect")
-	net.WriteVector(pos)
-	net.WriteUInt(math.Clamp(math.floor(dmg / victim:GetMaxHealth() * 255 + 0.5), 0, 255), 8)
+
+	net.WriteUInt(len, 10)
+
+	for i = 1, 3 do
+		net.WriteUInt(percent2uint(pos[i] + 1, 2, 1023), 10)
+	end
+
+	net.WriteUInt(percent2uint(dmg, victim:GetMaxHealth(), 255), 8)
+
 	net.Send(victim)
 end)
