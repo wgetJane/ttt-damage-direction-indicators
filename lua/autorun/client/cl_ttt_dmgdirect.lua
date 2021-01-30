@@ -23,6 +23,12 @@ hook.Add("InitPostEntity", "ttt_dmgdirect_InitPostEntity", function()
 	localply = LocalPlayer()
 end)
 
+local center_x, center_y = ScrW() / 2, ScrH() / 2
+
+hook.Add("OnScreenSizeChanged", "ttt_dmgdirect_OnScreenSizeChanged", function()
+	center_x, center_y = ScrW() / 2, ScrH() / 2
+end)
+
 local head, tail
 
 local RealTime = RealTime
@@ -37,7 +43,7 @@ net.Receive("ttt_dmgdirect", function()
 	local pos = localply:EyePos()
 
 	for i = 1, 3 do
-		pos[i] = pos[i] - (net.ReadUInt(10) / 511.5 - 1) * len
+		pos[i] = pos[i] - (net.ReadUInt(10) / (1023 * 0.5) - 1) * len
 	end
 
 	local ind = tail
@@ -56,19 +62,17 @@ net.Receive("ttt_dmgdirect", function()
 	end
 end)
 
-local ScrW, ScrH, render, surface = ScrW, ScrH, render, surface
-
-local rad, deg, pi, min, max, atan2, sin, cos =
-	math.rad(1), math.deg(1), math.pi, math.min, math.max, math.atan2, math.sin, math.cos
+local render, surface = render, surface
+local min, max = math.min, math.max
+local rad, deg, pi = math.rad(1), math.deg(1), math.pi
+local atan2, sin, cos = math.atan2, math.sin, math.cos
 
 hook.Add("HUDPaint", "ttt_dmgdirect_HUDPaint", function()
 	if not (head and IsValid(localply) and localply:Alive()) then
 		return
 	end
 
-	local scrw, scrh = ScrW(), ScrH()
-
-	local scale = scrh / 1080
+	local scale = center_y * (2 / 1080)
 
 	local eyepos = localply:EyePos()
 	local ex, ey, ez = eyepos[1], eyepos[2], eyepos[3]
@@ -114,7 +118,7 @@ hook.Add("HUDPaint", "ttt_dmgdirect_HUDPaint", function()
 			local lifeperc = lifetime / max_lifetime
 
 			surface.SetDrawColor(r, g, b,
-				lifeperc > 0.66 and a * (3 - 3 * lifeperc) or a)
+				lifeperc > (2 / 3) and a * (3 - 3 * lifeperc) or a)
 
 			local pos = ind[3]
 
@@ -128,16 +132,16 @@ hook.Add("HUDPaint", "ttt_dmgdirect_HUDPaint", function()
 
 			local w = dmg < 0.2 and 8 + 120 * dmg or 16 + 80 * dmg
 
-			local h = 80 + 64 * min(max(pitch * -0.64, -1), 1)
+			local h = 80 + 64 * min(max(pitch * (-1 / 1.57), -1), 1)
 
 			local radius = 64
-				+ 96 * min(eyepos:Distance(pos) * 0.0009765625, 1)
+				+ 96 * min(eyepos:Distance(pos) * (1 / 1024), 1)
 				+ h * 0.5
 				+ (lifetime < 0.1 and 320 * (0.1 - lifetime) or 0)
 
 			surface.DrawTexturedRectRotated(
-				scrw * 0.5 - radius * sin(yaw) * scale,
-				scrh * 0.5 - radius * cos(yaw) * scale,
+				center_x - radius * sin(yaw) * scale,
+				center_y - radius * cos(yaw) * scale,
 				w * scale, h * scale, yaw * deg
 			)
 		end
