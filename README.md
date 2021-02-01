@@ -2,6 +2,8 @@
 
 removes the annoying red flashbang effect that you see when you take damage and replaces it with tf2-like damage direction indicators
 
+![](https://cdn.discordapp.com/attachments/682720535234609160/804726154744299530/unknown.png)
+
 the horizontal direction of the damage is shown by the position of the indicator around the crosshair (above means it came from in front, below means it came from behind)
 
 the amount of damage you took is shown by the width of the indicator (max width = 100 damage)
