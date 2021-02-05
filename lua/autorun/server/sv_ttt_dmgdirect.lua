@@ -24,29 +24,31 @@ hook.Add("PostEntityTakeDamage", "ttt_dmgdirect_PostEntityTakeDamage", function(
 		return
 	end
 
-	local pos
+	local src, pos
 
 	if bit.band(dmginfo:GetDamageType(), DMG_FALL + DMG_DROWN) > 0 then
 		pos = victim:GetPos()
 	else
-		pos = dmginfo:GetInflictor()
+		src = dmginfo:GetInflictor()
 
-		if not IsValid(pos) or pos:IsWeapon() then
-			pos = dmginfo:GetAttacker()
+		if not IsValid(src) or src:IsWeapon() then
+			src = src:GetOwner()
 
-			if not IsValid(pos) then
-				pos = victim
+			if not IsValid(src) then
+				src = dmginfo:GetAttacker()
 			end
 		end
 
-		if pos:IsWorld() then
-			pos = dmginfo:GetDamagePosition()
-		else
-			pos = pos:WorldSpaceCenter()
+		if IsValid(src) and not src:IsWorld() then
+			pos = src:WorldSpaceCenter()
 		end
 
-		if pos:IsZero() then
-			pos = victim:EyePos()
+		if not pos or pos:IsZero() then
+			pos = dmginfo:GetDamagePosition()
+
+			if pos:IsZero() then
+				pos = victim:EyePos()
+			end
 		end
 	end
 
