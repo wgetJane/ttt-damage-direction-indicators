@@ -62,7 +62,8 @@ net.Receive("ttt_dmgdirect", function()
 	end
 end)
 
-local render, surface = render, surface
+local OverrideBlend, SetMaterial = render.OverrideBlend, surface.SetMaterial
+local SetDrawColor, DrawTexturedRectRotated = surface.SetDrawColor, surface.DrawTexturedRectRotated
 local min, max = math.min, math.max
 local rad, deg, pi = math.rad(1), math.deg(1), math.pi
 local atan2, sin, cos = math.atan2, math.sin, math.cos
@@ -80,9 +81,9 @@ hook.Add("HUDPaint", "ttt_dmgdirect_HUDPaint", function()
 	local eyeang = localply:EyeAngles()
 	local epit, eyaw = eyeang[1] * rad, (eyeang[2] - 180) * rad
 
-	render.OverrideBlend(true, BLEND_SRC_ALPHA, BLEND_ONE, BLENDFUNC_ADD)
+	OverrideBlend(true, BLEND_SRC_ALPHA, BLEND_ONE, BLENDFUNC_ADD)
 
-	surface.SetMaterial(indmat)
+	SetMaterial(indmat)
 
 	local realtime = RealTime()
 
@@ -117,7 +118,7 @@ hook.Add("HUDPaint", "ttt_dmgdirect_HUDPaint", function()
 		else
 			local lifeperc = lifetime / max_lifetime
 
-			surface.SetDrawColor(r, g, b,
+			SetDrawColor(r, g, b,
 				lifeperc > (2 / 3) and a * (3 - 3 * lifeperc) or a)
 
 			local pos = ind[3]
@@ -139,7 +140,7 @@ hook.Add("HUDPaint", "ttt_dmgdirect_HUDPaint", function()
 				+ h * 0.5
 				+ (lifetime < 0.1 and 320 * (0.1 - lifetime) or 0)
 
-			surface.DrawTexturedRectRotated(
+			DrawTexturedRectRotated(
 				center_x - radius * sin(yaw) * scale,
 				center_y - radius * cos(yaw) * scale,
 				w * scale, h * scale, yaw * deg
@@ -150,5 +151,5 @@ hook.Add("HUDPaint", "ttt_dmgdirect_HUDPaint", function()
 		ind = nxt
 	end
 
-	render.OverrideBlend(false)
+	OverrideBlend(false)
 end)

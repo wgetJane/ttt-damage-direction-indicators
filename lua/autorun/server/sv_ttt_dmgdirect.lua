@@ -26,7 +26,7 @@ hook.Add("PostEntityTakeDamage", "ttt_dmgdirect_PostEntityTakeDamage", function(
 
 	local src, pos
 
-	if bit.band(dmginfo:GetDamageType(), DMG_FALL + DMG_DROWN) > 0 then
+	if dmginfo:IsDamageType(DMG_FALL + DMG_DROWN) then
 		pos = victim:GetPos()
 	else
 		src = dmginfo:GetInflictor()
