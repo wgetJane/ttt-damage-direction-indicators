@@ -49,14 +49,13 @@ net.Receive("ttt_dmgdirect", function()
 	local ind = tail
 
 	tail = {
-		false,
-		RealTime(),
-		pos,
-		net.ReadUInt(8) / 255,
+		birth = RealTime(),
+		pos = pos,
+		dmg = net.ReadUInt(8) / 255,
 	}
 
 	if ind then
-		ind[1] = tail
+		ind.nxt = tail
 	else
 		head = tail
 	end
@@ -89,67 +88,73 @@ hook.Add("HUDPaint", "ttt_dmgdirect_HUDPaint", function()
 
 	local r, g, b, a = 255, 0, 0, 85
 
-	local prev
-	local ind = head
-	while ind do
-		local lifetime = realtime - ind[2]
+	local ind, prev = head
 
-		local dmg = ind[4]
+	::loop::
 
-		local max_lifetime = 1 + 1 * dmg
+	local lifetime = realtime - ind.birth
 
-		local nxt = ind[1]
+	local dmg = ind.dmg
 
-		if lifetime > max_lifetime then
-			if ind == head then
-				head = nxt
+	local max_lifetime = 1 + 1 * dmg
 
-				if nxt then
-					ind[1] = false
-				else
-					tail = nil
-					break
-				end
-			else
-				prev[1] = nxt
+	local nxt = ind.nxt
 
-				ind[1] = false
-			end
+	if lifetime > max_lifetime then
+		if prev then
+			prev.nxt = nxt
+
+			ind.nxt = nil
 		else
-			local lifeperc = lifetime / max_lifetime
+			head = nxt
 
-			SetDrawColor(r, g, b,
-				lifeperc > (2 / 3) and a * (3 - 3 * lifeperc) or a)
+			if nxt then
+				ind.nxt = nil
+			else
+				tail = nil
 
-			local pos = ind[3]
-
-			local x, y, z = ex - pos[1], ey - pos[2], ez - pos[3]
-
-			local yaw = atan2(y, x) - eyaw
-
-			local pitch = ((
-					atan2(z, (x * x + y * y) ^ 0.5) - epit
-				) + pi) % (pi * 2) - pi
-
-			local w = dmg < 0.2 and 8 + 120 * dmg or 16 + 80 * dmg
-
-			local h = 80 + 64 * min(max(pitch * (-1 / 1.57), -1), 1)
-
-			local radius = 64
-				+ 96 * min(eyepos:Distance(pos) * (1 / 1024), 1)
-				+ h * 0.5
-				+ (lifetime < 0.1 and 320 * (0.1 - lifetime) or 0)
-
-			DrawTexturedRectRotated(
-				center_x - radius * sin(yaw) * scale,
-				center_y - radius * cos(yaw) * scale,
-				w * scale, h * scale, yaw * deg
-			)
+				goto brk
+			end
 		end
+	else
+		local lifeperc = lifetime / max_lifetime
 
-		prev = ind
-		ind = nxt
+		SetDrawColor(r, g, b,
+			lifeperc > (2 / 3) and a * (3 - 3 * lifeperc) or a)
+
+		local pos = ind.pos
+
+		local x, y, z = ex - pos[1], ey - pos[2], ez - pos[3]
+
+		local yaw = atan2(y, x) - eyaw
+
+		local pitch = ((
+				atan2(z, (x * x + y * y) ^ 0.5) - epit
+			) + pi) % (pi * 2) - pi
+
+		local w = dmg < 0.2 and 8 + 120 * dmg or 16 + 80 * dmg
+
+		local h = 80 + 64 * min(max(pitch * (-1 / 1.57), -1), 1)
+
+		local radius = 64
+			+ 96 * min(eyepos:Distance(pos) * (1 / 1024), 1)
+			+ h * 0.5
+			+ (lifetime < 0.1 and 320 * (0.1 - lifetime) or 0)
+
+		DrawTexturedRectRotated(
+			center_x - radius * sin(yaw) * scale,
+			center_y - radius * cos(yaw) * scale,
+			w * scale, h * scale, yaw * deg
+		)
 	end
+
+	prev, ind = ind, nxt
+
+	if ind then
+		goto loop
+	end
+
+	::brk::
 
 	OverrideBlend(false)
 end)
