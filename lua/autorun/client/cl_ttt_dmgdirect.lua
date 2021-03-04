@@ -1,4 +1,5 @@
 local indmat = Material("materials/ttt_dmgdirect/indicator.png", "mips smooth")
+indmat:SetInt("$flags", 16 + 32 + 128)
 
 local cvarname = "ttt_dmgdirect_indicators"
 
@@ -50,8 +51,8 @@ net.Receive("ttt_dmgdirect", function()
 
 	tail = {
 		birth = RealTime(),
-		pos = pos,
 		dmg = net.ReadUInt(8) / 255,
+		pos.x, pos.y, pos.z,
 	}
 
 	if ind then
@@ -61,16 +62,25 @@ net.Receive("ttt_dmgdirect", function()
 	end
 end)
 
-local OverrideBlend, SetMaterial = render.OverrideBlend, surface.SetMaterial
-local SetDrawColor, DrawTexturedRectRotated = surface.SetDrawColor, surface.DrawTexturedRectRotated
-local min, max = math.min, math.max
-local rad, deg, pi = math.rad(1), math.deg(1), math.pi
-local atan2, sin, cos = math.atan2, math.sin, math.cos
+local SetMaterial, SetDrawColor, DrawTexturedRectRotated =
+	surface.SetMaterial, surface.SetDrawColor, surface.DrawTexturedRectRotated
+local min, max, atan2, sin, cos =
+	math.min, math.max, math.atan2, math.sin, math.cos
 
 hook.Add("HUDPaint", "ttt_dmgdirect_HUDPaint", function()
-	if not (head and IsValid(localply) and localply:Alive()) then
+	if not head then
 		return
 	end
+
+	if not (IsValid(localply) and localply:Alive()) then
+		head, tail = nil, nil
+
+		return
+	end
+
+	local realtime = RealTime()
+
+	local r, g, b, a = 255, 0, 0, 85
 
 	local scale = center_y * (2 / 1080)
 
@@ -78,15 +88,9 @@ hook.Add("HUDPaint", "ttt_dmgdirect_HUDPaint", function()
 	local ex, ey, ez = eyepos[1], eyepos[2], eyepos[3]
 
 	local eyeang = localply:EyeAngles()
-	local epit, eyaw = eyeang[1] * rad, (eyeang[2] - 180) * rad
-
-	OverrideBlend(true, BLEND_SRC_ALPHA, BLEND_ONE, BLENDFUNC_ADD)
+	local epit, eyaw = eyeang[1], (eyeang[2] - 180) * 0.017453292519943
 
 	SetMaterial(indmat)
-
-	local realtime = RealTime()
-
-	local r, g, b, a = 255, 0, 0, 85
 
 	local ind, prev = head
 
@@ -101,11 +105,7 @@ hook.Add("HUDPaint", "ttt_dmgdirect_HUDPaint", function()
 	local nxt = ind.nxt
 
 	if lifetime > max_lifetime then
-		if prev then
-			prev.nxt = nxt
-
-			ind.nxt = nil
-		else
+		if ind == head then
 			head = nxt
 
 			if nxt then
@@ -113,8 +113,12 @@ hook.Add("HUDPaint", "ttt_dmgdirect_HUDPaint", function()
 			else
 				tail = nil
 
-				goto brk
+				return
 			end
+		else
+			prev.nxt = nxt
+
+			ind.nxt = nil
 		end
 	else
 		local lifeperc = lifetime / max_lifetime
@@ -122,29 +126,29 @@ hook.Add("HUDPaint", "ttt_dmgdirect_HUDPaint", function()
 		SetDrawColor(r, g, b,
 			lifeperc > (2 / 3) and a * (3 - 3 * lifeperc) or a)
 
-		local pos = ind.pos
-
-		local x, y, z = ex - pos[1], ey - pos[2], ez - pos[3]
+		local x, y, z = ex - ind[1], ey - ind[2], ez - ind[3]
+		local dist2dsq = x * x + y * y
+		local dist3dsq = dist2dsq + z * z
 
 		local yaw = atan2(y, x) - eyaw
 
-		local pitch = ((
-				atan2(z, (x * x + y * y) ^ 0.5) - epit
-			) + pi) % (pi * 2) - pi
+		local pitch = (
+			180 - epit + atan2(z, dist2dsq ^ 0.5) * 57.295779513082
+		) % 360 - 180
 
 		local w = dmg < 0.2 and 8 + 120 * dmg or 16 + 80 * dmg
 
-		local h = 80 + 64 * min(max(pitch * (-1 / 1.57), -1), 1)
+		local h = 80 + 64 * min(max(pitch * (-1 / 90), -1), 1)
 
 		local radius = 64
-			+ 96 * min(eyepos:Distance(pos) * (1 / 1024), 1)
-			+ h * 0.5
+			+ 96 * min(dist3dsq ^ 0.5 * (1 / 1024), 1)
+			+ h * (425 / 512 * 0.5)
 			+ (lifetime < 0.1 and 320 * (0.1 - lifetime) or 0)
 
 		DrawTexturedRectRotated(
 			center_x - radius * sin(yaw) * scale,
 			center_y - radius * cos(yaw) * scale,
-			w * scale, h * scale, yaw * deg
+			w * scale, h * scale * (512 / 425), yaw * 57.295779513082
 		)
 	end
 
@@ -153,8 +157,4 @@ hook.Add("HUDPaint", "ttt_dmgdirect_HUDPaint", function()
 	if ind then
 		goto loop
 	end
-
-	::brk::
-
-	OverrideBlend(false)
 end)
