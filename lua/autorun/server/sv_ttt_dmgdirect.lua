@@ -2,10 +2,6 @@ resource.AddSingleFile("materials/ttt_dmgdirect/indicator.png")
 
 util.AddNetworkString("ttt_dmgdirect")
 
-hook.Add("OnDamagedByExplosion", "ttt_dmgdirect_OnDamagedByExplosion", function()
-	return true
-end)
-
 local function percent2uint(a, b, c)
 	return math.Clamp(math.floor(a / b * c + 0.5), 0, c)
 end
@@ -31,12 +27,12 @@ hook.Add("PostEntityTakeDamage", "ttt_dmgdirect_PostEntityTakeDamage", function(
 	else
 		src = dmginfo:GetInflictor()
 
-		if not IsValid(src) or src:IsWeapon() then
+		if IsValid(src) and src:IsWeapon() then
 			src = src:GetOwner()
+		end
 
-			if not IsValid(src) then
-				src = dmginfo:GetAttacker()
-			end
+		if not IsValid(src) then
+			src = dmginfo:GetAttacker()
 		end
 
 		if IsValid(src) and not src:IsWorld() then
