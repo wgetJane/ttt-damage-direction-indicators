@@ -32,6 +32,8 @@ end)
 
 local head, tail
 
+local pool_size, pool = 0
+
 local RealTime = RealTime
 
 net.Receive("ttt_dmgdirect", function()
@@ -49,11 +51,22 @@ net.Receive("ttt_dmgdirect", function()
 
 	local ind = tail
 
-	tail = {
-		birth = RealTime(),
-		dmg = net.ReadUInt(8) / 255,
-		pos.x, pos.y, pos.z,
-	}
+	local push
+	if pool then
+		push = pool
+
+		pool = push.nxtpool
+
+		pool_size = pool_size - 1
+	else
+		push = {0, 0, 0}
+	end
+
+	push.birth = RealTime()
+	push.dmg = net.ReadUInt(8) / 255
+	push[1], push[2], push[3] = pos.x, pos.y, pos.z
+
+	tail = push
 
 	if ind then
 		ind.nxt = tail
@@ -73,7 +86,30 @@ hook.Add("HUDPaint", "ttt_dmgdirect_HUDPaint", function()
 	end
 
 	if not (IsValid(localply) and localply:Alive()) then
+		local ind = head
 		head, tail = nil, nil
+
+		::clear::
+
+		if pool_size < 8 then
+			ind.nxtpool = pool
+
+			pool = ind
+
+			pool_size = pool_size + 1
+		else
+			ind.nxtpool = nil
+		end
+
+		local nxt = ind.nxt
+
+		if nxt then
+			ind.nxt = nil
+
+			ind = nxt
+
+			goto clear
+		end
 
 		return
 	end
@@ -105,20 +141,30 @@ hook.Add("HUDPaint", "ttt_dmgdirect_HUDPaint", function()
 	local nxt = ind.nxt
 
 	if lifetime > max_lifetime then
-		if ind == head then
+		if pool_size < 8 then
+			ind.nxtpool = pool
+
+			pool = ind
+
+			pool_size = pool_size + 1
+		else
+			ind.nxtpool = nil
+		end
+
+		ind.nxt = nil
+
+		prev, ind = ind, prev
+
+		if prev == head then
 			head = nxt
 
-			if nxt then
-				ind.nxt = nil
-			else
+			if not nxt then
 				tail = nil
 
 				return
 			end
 		else
-			prev.nxt = nxt
-
-			ind.nxt = nil
+			ind.nxt = nxt
 		end
 	else
 		local lifeperc = lifetime / max_lifetime
