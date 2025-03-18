@@ -4,12 +4,12 @@ indmat:SetInt("$flags", 16 + 32 + 128)
 local cvarname = "ttt_dmgdirect_indicators"
 
 local enabled = CreateConVar(
-	cvarname, 1, FCVAR_ARCHIVE,
+	cvarname, "1", FCVAR_ARCHIVE,
 	"Display damage direction indicators"
 ):GetBool()
 
 cvars.AddChangeCallback(cvarname, function(name, old, new)
-	enabled = tonumber(new) == 1
+	enabled = (tonumber(new) or 0) ~= 0
 end)
 
 hook.Add("HUDShouldDraw", "ttt_dmgdirect_HUDShouldDraw", function(name)
