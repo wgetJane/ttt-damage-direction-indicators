@@ -2,6 +2,11 @@ resource.AddSingleFile("materials/ttt_dmgdirect/indicator.png")
 
 util.AddNetworkString("ttt_dmgdirect")
 
+local ttt_dmgdirect_indicators_ignore_silenced = CreateConVar(
+	"ttt_dmgdirect_indicators_ignore_silenced", "1", FCVAR_ARCHIVE + FCVAR_NOTIFY,
+	"Don't show damage indicators for damage dealt by silenced weapons in TTT"
+)
+
 local function percent2uint(a, b, c)
 	return math.Clamp(math.floor(a / b * c + 0.5), 0, c)
 end
@@ -18,6 +23,23 @@ hook.Add("PostEntityTakeDamage", "ttt_dmgdirect_PostEntityTakeDamage", function(
 
 	if dmg <= 0.000001 then
 		return
+	end
+
+	local attacker = dmginfo:GetAttacker()
+
+	if util.WeaponFromDamage and IsValid(attacker) and attacker:IsPlayer() then
+		local val = ttt_dmgdirect_indicators_ignore_silenced:GetInt()
+
+		if val ~= 0 then
+			local wep = util.WeaponFromDamage(dmginfo)
+
+			if IsValid(wep)
+				and wep.IsSilent
+				and (val == 2 or dmginfo:IsBulletDamage())
+			then
+				return
+			end
+		end
 	end
 
 	local src, pos
