@@ -16,7 +16,7 @@ hook.Add("PostEntityTakeDamage", "ttt_dmgdirect_PostEntityTakeDamage", function(
 
 	local dmg = dmginfo:GetDamage()
 
-	if dmg <= 0 then
+	if dmg <= 0.000001 then
 		return
 	end
 
